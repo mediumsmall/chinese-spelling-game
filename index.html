@@ -41,14 +41,16 @@ button{font:inherit;cursor:pointer}
 .lc{background:#faece7;color:#4a1b0c;border:1px solid #f0997b}
 .word-text{font-size:30px;line-height:1.15;font-weight:750}
 .write-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:24px auto 16px}
-.char-wrap{position:relative;width:124px}
+.char-wrap{position:relative;width:160px}
 .char-label{font-size:12px;color:var(--muted);margin-bottom:5px}
-.char-pad{position:relative;width:124px;height:124px;border:1px solid var(--border);border-radius:12px;background:
+.char-pad{position:relative;width:160px;height:160px;border:1px solid var(--border);border-radius:14px;background:
   linear-gradient(to right,transparent 49.5%,#ececec 49.5%,#ececec 50.5%,transparent 50.5%),
   linear-gradient(to bottom,transparent 49.5%,#ececec 49.5%,#ececec 50.5%,transparent 50.5%),
   #fff;touch-action:none;overflow:hidden}
 .char-pad.done{border-color:var(--success);background-color:var(--success-bg)}
 .hint-layer{position:absolute;inset:0;pointer-events:none;z-index:2}
+.trace-layer{position:absolute;inset:0;pointer-events:none;z-index:0}
+.char-pad>svg:not(.hint-layer):not(.trace-layer){position:relative;z-index:1}
 .loading{display:flex;align-items:center;justify-content:center;height:100%;padding:8px;font-size:12px;color:var(--muted)}
 .zh-inp{display:block;width:100%;max-width:420px;margin:28px auto 0;font-size:30px;line-height:1.2;text-align:center;padding:13px 15px;border:1px solid var(--border);border-radius:11px;background:#fff;color:var(--text);outline:none}
 .zh-inp:focus{border-color:#aaa;box-shadow:0 0 0 3px rgba(0,0,0,.04)}
@@ -89,8 +91,8 @@ button{font:inherit;cursor:pointer}
   .prompt-card p{font-size:27px}
   .wc{padding:22px 12px}
   .word-text{font-size:25px}
-  .char-wrap,.char-pad{width:104px}
-  .char-pad{height:104px}
+  .char-wrap,.char-pad{width:146px}
+  .char-pad{height:146px}
 }
 </style>
 </head>
@@ -242,13 +244,13 @@ function cardInner(i){
     '<div class="action-row">'+
       '<button class="sm-btn primary" onclick="gRetry('+i+')">start over</button>'+
       '<button class="sm-btn" onclick="gHint('+i+')">hint: first 2 strokes</button>'+
-      '<button class="sm-btn" onclick="gTraceCurrent('+i+')">trace current character</button>'+
       '<button class="sm-btn" onclick="gShowNextStroke('+i+')">show next stroke</button>'+
+      '<button class="sm-btn" onclick="gTraceCurrent('+i+')">trace current character</button>'+
     '</div>';
 }
 
 function padSize(){
-  return window.matchMedia("(max-width:520px)").matches?104:124;
+  return window.matchMedia("(max-width:520px)").matches?146:160;
 }
 
 function attachWriters(i){
@@ -336,6 +338,29 @@ function renderTwoStrokeHint(i,j){
   pad.appendChild(svg);
 }
 
+function renderTraceGuide(i,j){
+  var pad=document.getElementById("pad-"+i+"-"+j), data=charData[i][j];
+  if(!pad||!data) return;
+  var old=pad.querySelector(".trace-layer");
+  if(old) old.remove();
+  var size=padSize(), transform=HanziWriter.getScalingTransform(size,size,8);
+  var svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+  svg.setAttribute("class","trace-layer");
+  svg.setAttribute("width",size);
+  svg.setAttribute("height",size);
+  var group=document.createElementNS("http://www.w3.org/2000/svg","g");
+  group.setAttribute("transform",transform.transform);
+  data.strokes.forEach(function(stroke){
+    var path=document.createElementNS("http://www.w3.org/2000/svg","path");
+    path.setAttribute("d",stroke);
+    path.setAttribute("fill","#b8b8b8");
+    path.setAttribute("opacity",".5");
+    group.appendChild(path);
+  });
+  svg.appendChild(group);
+  pad.insertBefore(svg,pad.firstChild);
+}
+
 function updateStatus(i){
   var status=document.getElementById("status-"+i);
   if(!status) return;
@@ -381,8 +406,7 @@ function gTraceCurrent(i){
   var j=currentCharIndex(i), writer=writers[i]&&writers[i][j];
   if(j<0||!writer) return;
   markAssisted(i,j);
-  writer.updateColor("strokeColor","#c7c7c7",{duration:0});
-  writer.showCharacter({duration:180});
+  renderTraceGuide(i,j);
   var status=document.getElementById("status-"+i);
   if(status){
     status.className="status";
