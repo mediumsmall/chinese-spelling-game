@@ -62,11 +62,15 @@ button{font:inherit;cursor:pointer}
 .sm-btn.primary{background:var(--text);border-color:var(--text);color:#fff}
 .answer-box{margin:22px auto 4px;border-radius:11px;padding:14px;width:100%;max-width:520px}
 .answer-box.success{background:var(--success-bg)}
+.answer-box.assisted{background:#fff8e8}
 .answer-box.revealed{background:#f5f5f5}
 .answer-zh{display:block;font-size:34px;font-weight:650;color:var(--success)}
 .answer-py{display:block;font-size:17px;margin-top:4px;color:var(--success);opacity:.85}
+.answer-box.assisted .answer-zh{color:#8a5a00}
+.answer-box.assisted .answer-py{color:#8a5a00}
 .answer-box.revealed .answer-zh{color:#5f5f5f}
 .answer-box.revealed .answer-py{color:#777}
+.answer-note{display:block;font-size:13px;margin-top:7px;color:var(--muted)}
 .game-footer{color:var(--muted);font-size:14px}
 .footer-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
 .footer-actions{display:flex;gap:8px;flex-wrap:wrap}
@@ -138,7 +142,7 @@ var S=[
   ]}
 ];
 
-var ci=0, mode="writing", ws=[], writers=[], completed=[], mistakes=[], hinted=[], typeHints=[], charData=[], uv=[];
+var ci=0, mode="writing", ws=[], writers=[], completed=[], assisted=[], strokeProgress=[], mistakes=[], hinted=[], typeHints=[], charData=[], uv=[];
 var bestVoice=null;
 
 function charsFor(word){
@@ -194,6 +198,8 @@ function gInit(i){
   ws=S[i].w.map(function(){return 0;});
   writers=S[i].w.map(function(){return [];});
   completed=emptyWordState();
+  assisted=emptyWordState();
+  strokeProgress=S[i].w.map(function(w){return charsFor(w).map(function(){return 0;});});
   mistakes=S[i].w.map(function(){return 0;});
   hinted=S[i].w.map(function(w){return charsFor(w).map(function(){return false;});});
   typeHints=S[i].w.map(function(){return false;});
@@ -205,9 +211,14 @@ function gInit(i){
 function cardInner(i){
   var w=S[ci].w[i], state=ws[i], chars=charsFor(w);
   if(state===2||state===3){
+    var helped=mode==="writing"?assisted[i].filter(Boolean).length:0;
+    var boxClass=state===3?"revealed":helped?"assisted":"success";
+    var note=state===2&&helped
+      ?'<span class="answer-note">'+helped+' character'+(helped===1?" was":"s were")+' completed with help.</span>'
+      :"";
     return '<div class="card-head"><span class="lb '+w.c+'">'+w.l+'</span><span class="word-text">'+w.e+'</span></div>'+
-      '<div class="answer-box '+(state===2?'success':'revealed')+'">'+
-      '<span class="answer-zh">'+w.z+'</span><span class="answer-py">'+w.py+'</span></div>'+
+      '<div class="answer-box '+boxClass+'">'+
+      '<span class="answer-zh">'+w.z+'</span><span class="answer-py">'+w.py+'</span>'+note+'</div>'+
       '<div class="action-row"><button class="sm-btn" onclick="gRetry('+i+')">'+(mode==="writing"?'write again':'try again')+'</button></div>';
   }
   if(mode==="typing"){
@@ -231,7 +242,8 @@ function cardInner(i){
     '<div class="action-row">'+
       '<button class="sm-btn primary" onclick="gRetry('+i+')">start over</button>'+
       '<button class="sm-btn" onclick="gHint('+i+')">hint: first 2 strokes</button>'+
-      '<button class="sm-btn" onclick="gReveal('+i+')">reveal</button>'+
+      '<button class="sm-btn" onclick="gTraceCurrent('+i+')">trace current character</button>'+
+      '<button class="sm-btn" onclick="gShowNextStroke('+i+')">show next stroke</button>'+
     '</div>';
 }
 
@@ -279,14 +291,22 @@ function attachWriters(i){
     });
     writers[i][j]=writer;
     writer.quiz({
-      onMistake:function(){mistakes[i]++;updateStatus(i);},
+      onMistake:function(data){
+        mistakes[i]++;
+        strokeProgress[i][j]=data.strokeNum;
+        updateStatus(i);
+      },
+      onCorrectStroke:function(data){
+        strokeProgress[i][j]=data.strokeNum+1;
+        updateStatus(i);
+      },
       onComplete:function(){
         completed[i][j]=true;
         el.classList.add("done");
         updateStatus(i);
         if(completed[i].every(Boolean)){
           ws[i]=2;
-          window.setTimeout(function(){updateCard(i);updateFooter();},450);
+          window.setTimeout(function(){updateCard(i);updateFooter();},650);
         }
       }
     });
@@ -320,9 +340,12 @@ function updateStatus(i){
   var status=document.getElementById("status-"+i);
   if(!status) return;
   var done=completed[i].filter(Boolean).length, total=completed[i].length;
+  var helped=assisted[i].filter(Boolean).length;
   if(done===total){
     status.className="status good";
-    status.textContent="Correct! All "+total+" character"+(total===1?"":"s")+" completed.";
+    status.textContent=helped
+      ?"Completed! "+(total-helped)+" independently, "+helped+" with help."
+      :"Correct! All "+total+" character"+(total===1?"":"s")+" completed independently.";
   }else if(mistakes[i]){
     status.className="status bad";
     status.textContent=done+"/"+total+" complete. Check the stroke order and try that stroke again.";
@@ -332,15 +355,50 @@ function updateStatus(i){
   }
 }
 
+function currentCharIndex(i){
+  return completed[i].findIndex(function(done){return !done;});
+}
+
+function markAssisted(i,j){
+  assisted[i][j]=true;
+  updateFooter();
+}
+
 function gHint(i){
-  var first=completed[i].findIndex(function(done){return !done;});
+  var first=currentCharIndex(i);
   if(first<0) return;
+  markAssisted(i,first);
   hinted[i][first]=true;
   renderTwoStrokeHint(i,first);
   var status=document.getElementById("status-"+i);
   if(status){
     status.className="status";
-    status.textContent="The first two strokes are shown in purple.";
+    status.textContent="The first two strokes are shown in purple. This character will count as assisted.";
+  }
+}
+
+function gTraceCurrent(i){
+  var j=currentCharIndex(i), writer=writers[i]&&writers[i][j];
+  if(j<0||!writer) return;
+  markAssisted(i,j);
+  writer.updateColor("strokeColor","#c7c7c7",{duration:0});
+  writer.showCharacter({duration:180});
+  var status=document.getElementById("status-"+i);
+  if(status){
+    status.className="status";
+    status.textContent="Trace the faint character in the correct stroke order. It will count as assisted.";
+  }
+}
+
+function gShowNextStroke(i){
+  var j=currentCharIndex(i), writer=writers[i]&&writers[i][j];
+  if(j<0||!writer) return;
+  markAssisted(i,j);
+  writer.highlightStroke(strokeProgress[i][j]||0);
+  var status=document.getElementById("status-"+i);
+  if(status){
+    status.className="status";
+    status.textContent="Watch the purple stroke, then draw it yourself. This character will count as assisted.";
   }
 }
 
@@ -376,6 +434,8 @@ function gReveal(i){
 function gRetry(i){
   ws[i]=0;
   completed[i]=charsFor(S[ci].w[i]).map(function(){return false;});
+  assisted[i]=charsFor(S[ci].w[i]).map(function(){return false;});
+  strokeProgress[i]=charsFor(S[ci].w[i]).map(function(){return 0;});
   hinted[i]=charsFor(S[ci].w[i]).map(function(){return false;});
   typeHints[i]=false;
   mistakes[i]=0;
@@ -384,6 +444,9 @@ function gRetry(i){
 }
 
 function gRevealAll(){
+  writers.forEach(function(group){
+    group.forEach(function(writer){if(writer&&writer.cancelQuiz) writer.cancelQuiz();});
+  });
   ws=ws.map(function(state){return state===2?2:3;});
   S[ci].w.forEach(function(_,i){updateCard(i);});
   updateFooter();
@@ -404,10 +467,20 @@ function updateCard(i){
 function updateFooter(){
   var allDone=ws.every(function(state){return state>=2;});
   var correct=ws.filter(function(state){return state===2;}).length;
+  var assistedChars=assisted.reduce(function(total,word,i){
+    return total+word.filter(function(helped,j){return helped&&completed[i][j];}).length;
+  },0);
+  var completedChars=completed.reduce(function(total,word){
+    return total+word.filter(Boolean).length;
+  },0);
+  var independentChars=completedChars-assistedChars;
+  var revealed=ws.filter(function(state){return state===3;}).length;
   var msg=allDone
-    ?(correct===ws.length
-      ?'<span style="color:var(--success);font-weight:650">All correct! Press <span class="kk">space</span> to hear it.</span>'
-      :'<span>Done - '+correct+'/'+ws.length+' completed correctly.</span>')
+    ?(mode==="writing"
+      ?'<span style="color:var(--success);font-weight:650">Done - '+independentChars+' independently · '+assistedChars+' assisted'+(revealed?' · '+revealed+' answer'+(revealed===1?'':'s')+' revealed':'')+'.</span>'
+      :(correct===ws.length
+        ?'<span style="color:var(--success);font-weight:650">All correct! Press <span class="kk">space</span> to hear it.</span>'
+        :'<span>Done - '+correct+'/'+ws.length+' completed correctly.</span>'))
     :(mode==="writing"
       ?'<span>Write with a mouse, stylus, or finger. <span class="kk">space</span> plays the sentence.</span>'
       :'<span>Type pinyin or Chinese characters and press <span class="kk">enter</span>. <span class="kk">space</span> plays the sentence.</span>');
@@ -451,6 +524,8 @@ function setMode(nextMode){
 
 window.gInit=gInit;
 window.gHint=gHint;
+window.gTraceCurrent=gTraceCurrent;
+window.gShowNextStroke=gShowNextStroke;
 window.gTypeHint=gTypeHint;
 window.gReveal=gReveal;
 window.gRetry=gRetry;
