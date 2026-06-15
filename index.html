@@ -22,6 +22,8 @@
 body{margin:0;background:#fff;color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 button{font:inherit;cursor:pointer}
 .game-shell{width:100%;max-width:1536px;margin:0 auto;padding:38px 55px 42px}
+.week-bar{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px;color:var(--muted)}
+.week-select{font:inherit;font-weight:650;padding:9px 34px 9px 13px;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--text)}
 .mode-bar{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:22px}
 .mode-toggle{padding:10px 18px;border:1px solid var(--border);background:#fff;color:var(--muted)}
 .mode-toggle:first-child{border-radius:10px 0 0 10px}
@@ -101,7 +103,20 @@ button{font:inherit;cursor:pointer}
 <main class="game-shell"><div id="gc"></div></main>
 
 <script>
-var S=[
+var WEEKS={
+  "17":[
+    {en:"Today is very cold.",zh:"今天很冷。",w:[
+      {e:"Today",z:"今天",py:"jīn tiān",l:"状语",c:"la"},
+      {e:"is very",z:"很",py:"hěn",l:"状语",c:"la"},
+      {e:"cold.",z:"冷",py:"lěng",l:"谓语",c:"lp"}
+    ]},
+    {en:"There are dark clouds in the sky.",zh:"天上有乌云。",w:[
+      {e:"In the sky",z:"天上",py:"tiān shàng",l:"状语",c:"la"},
+      {e:"there are",z:"有",py:"yǒu",l:"谓语",c:"lp"},
+      {e:"dark clouds.",z:"乌云",py:"wū yún",l:"宾语",c:"lo"}
+    ]}
+  ],
+  "18":[
   {en:"He is very worried.",zh:"他很着急。",w:[
     {e:"He",z:"他",py:"tā",l:"主语",c:"ls"},
     {e:"is very",z:"很",py:"hěn",l:"状语",c:"la"},
@@ -142,7 +157,47 @@ var S=[
     {e:"forgot",z:"忘记",py:"wàng jì",l:"谓语",c:"lp"},
     {e:"to bring an umbrella.",z:"带雨伞了",py:"dài yǔ sǎn le",l:"宾语",c:"lo"}
   ]}
-];
+  ],
+  "19":[
+    {en:"The little monkey can climb trees.",zh:"小猴子会爬树。",w:[
+      {e:"The little monkey",z:"小猴子",py:"xiǎo hóu zi",l:"主语",c:"ls"},
+      {e:"can climb trees.",z:"会爬树",py:"huì pá shù",l:"谓语",c:"lp"}
+    ]},
+    {en:"The bird is standing on the branch.",zh:"小鸟站在树枝上。",w:[
+      {e:"The bird",z:"小鸟",py:"xiǎo niǎo",l:"主语",c:"ls"},
+      {e:"is standing",z:"站在",py:"zhàn zài",l:"谓语",c:"lp"},
+      {e:"on the branch.",z:"树枝上",py:"shù zhī shàng",l:"宾语",c:"lo"}
+    ]},
+    {en:"The rabbit jumps very high.",zh:"小兔子跳得很高。",w:[
+      {e:"The rabbit",z:"小兔子",py:"xiǎo tù zi",l:"主语",c:"ls"},
+      {e:"jumps",z:"跳得",py:"tiào de",l:"谓语",c:"lp"},
+      {e:"very high.",z:"很高",py:"hěn gāo",l:"状语",c:"la"}
+    ]},
+    {en:"She has a pair of big eyes.",zh:"她有一双大眼睛。",w:[
+      {e:"She",z:"她",py:"tā",l:"主语",c:"ls"},
+      {e:"has",z:"有",py:"yǒu",l:"谓语",c:"lp"},
+      {e:"a pair of big eyes.",z:"一双大眼睛",py:"yì shuāng dà yǎn jīng",l:"宾语",c:"lo"}
+    ]},
+    {en:"The leaf is green.",zh:"树叶是绿色的。",w:[
+      {e:"The leaf",z:"树叶",py:"shù yè",l:"主语",c:"ls"},
+      {e:"is green.",z:"是绿色的",py:"shì lǜ sè de",l:"谓语",c:"lp"}
+    ]},
+    {en:"This apple is very sweet.",zh:"这个苹果很甜。",w:[
+      {e:"This apple",z:"这个苹果",py:"zhè ge píng guǒ",l:"主语",c:"ls"},
+      {e:"is very sweet.",z:"很甜",py:"hěn tián",l:"谓语",c:"lp"}
+    ]},
+    {en:"What place is this?",zh:"这是什么地方？",w:[
+      {e:"This",z:"这",py:"zhè",l:"主语",c:"ls"},
+      {e:"is",z:"是",py:"shì",l:"谓语",c:"lp"},
+      {e:"what place?",z:"什么地方",py:"shén me dì fang",l:"宾语",c:"lo"}
+    ]}
+  ]
+};
+
+var currentWeek="19";
+var requestedWeek=new URLSearchParams(window.location.search).get("week");
+if(WEEKS[requestedWeek]) currentWeek=requestedWeek;
+var S=WEEKS[currentWeek];
 
 var ci=0, mode="writing", ws=[], writers=[], completed=[], assisted=[], strokeProgress=[], mistakes=[], hinted=[], typeHints=[], charData=[], uv=[];
 var bestVoice=null;
@@ -526,6 +581,12 @@ function gRender(){
   }).join("");
   var error=mode!=="writing"||window.HanziWriter?"":'<div class="lib-error">Writing practice needs an internet connection to load the stroke-checking library.</div>';
   document.getElementById("gc").innerHTML=
+    '<div class="week-bar"><label for="week-select">Choose week:</label>'+
+      '<select id="week-select" class="week-select" onchange="setWeek(this.value)">'+
+        Object.keys(WEEKS).sort(function(a,b){return Number(b)-Number(a);}).map(function(week){
+          return '<option value="'+week+'"'+(week===currentWeek?' selected':'')+'>Week '+week+'</option>';
+        }).join("")+
+      '</select></div>'+
     '<div class="mode-bar" role="group" aria-label="Practice mode">'+
       '<button class="mode-toggle'+(mode==="typing"?' active':'')+'" onclick="setMode(\'typing\')">Typing</button>'+
       '<button class="mode-toggle'+(mode==="writing"?' active':'')+'" onclick="setMode(\'writing\')">Writing</button>'+
@@ -540,6 +601,16 @@ function gRender(){
   updateFooter();
 }
 
+function setWeek(nextWeek){
+  if(!WEEKS[nextWeek]||nextWeek===currentWeek) return;
+  currentWeek=nextWeek;
+  S=WEEKS[currentWeek];
+  var url=new URL(window.location.href);
+  url.searchParams.set("week",currentWeek);
+  window.history.replaceState(null,"",url);
+  gInit(0);
+}
+
 function setMode(nextMode){
   if(nextMode===mode) return;
   mode=nextMode;
@@ -547,6 +618,7 @@ function setMode(nextMode){
 }
 
 window.gInit=gInit;
+window.setWeek=setWeek;
 window.gHint=gHint;
 window.gTraceCurrent=gTraceCurrent;
 window.gShowNextStroke=gShowNextStroke;
