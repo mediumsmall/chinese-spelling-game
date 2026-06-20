@@ -191,10 +191,42 @@ var WEEKS={
       {e:"is",z:"是",py:"shì",l:"谓语",c:"lp"},
       {e:"what place?",z:"什么地方",py:"shén me dì fang",l:"宾语",c:"lo"}
     ]}
+  ],
+  "20":[
+    {en:"There is a small bird in the tree.",zh:"树上有一只小鸟。",w:[
+      {e:"In the tree",z:"树上",py:"shù shàng",l:"状语",c:"la"},
+      {e:"there is",z:"有",py:"yǒu",l:"谓语",c:"lp"},
+      {e:"a small bird.",z:"一只小鸟",py:"yì zhī xiǎo niǎo",l:"宾语",c:"lo"}
+    ]},
+    {en:"I help my mother carry things.",zh:"我帮妈妈拿东西。",w:[
+      {e:"I",z:"我",py:"wǒ",l:"主语",c:"ls"},
+      {e:"help my mother",z:"帮妈妈",py:"bāng mā ma",l:"谓语",c:"lp"},
+      {e:"carry things.",z:"拿东西",py:"ná dōng xi",l:"宾语",c:"lo"}
+    ]},
+    {en:"The kitten is catching a mouse.",zh:"小猫在捉老鼠。",w:[
+      {e:"The kitten",z:"小猫",py:"xiǎo māo",l:"主语",c:"ls"},
+      {e:"is catching",z:"在捉",py:"zài zhuō",l:"谓语",c:"lp"},
+      {e:"a mouse.",z:"老鼠",py:"lǎo shǔ",l:"宾语",c:"lo"}
+    ]},
+    {en:"I like reading books.",zh:"我喜欢看书。",w:[
+      {e:"I",z:"我",py:"wǒ",l:"主语",c:"ls"},
+      {e:"like",z:"喜欢",py:"xǐ huān",l:"谓语",c:"lp"},
+      {e:"reading books.",z:"看书",py:"kàn shū",l:"宾语",c:"lo"}
+    ]},
+    {en:"My younger brother likes to draw.",zh:"弟弟喜欢画画。",w:[
+      {e:"My younger brother",z:"弟弟",py:"dì di",l:"主语",c:"ls"},
+      {e:"likes",z:"喜欢",py:"xǐ huān",l:"谓语",c:"lp"},
+      {e:"to draw.",z:"画画",py:"huà huà",l:"宾语",c:"lo"}
+    ]},
+    {en:"The big bird helps the big tree catch insects.",zh:"大鸟帮大树捉虫子。",w:[
+      {e:"The big bird",z:"大鸟",py:"dà niǎo",l:"主语",c:"ls"},
+      {e:"helps the big tree",z:"帮大树",py:"bāng dà shù",l:"谓语",c:"lp"},
+      {e:"catch insects.",z:"捉虫子",py:"zhuō chóng zi",l:"宾语",c:"lo"}
+    ]}
   ]
 };
 
-var currentWeek="19";
+var currentWeek="20";
 var requestedWeek=new URLSearchParams(window.location.search).get("week");
 if(WEEKS[requestedWeek]) currentWeek=requestedWeek;
 var S=WEEKS[currentWeek];
