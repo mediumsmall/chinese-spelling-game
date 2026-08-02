@@ -297,10 +297,47 @@ var WEEKS={
       {e:"with you",z:"跟你一起",py:"gēn nǐ yì qǐ",l:"状语",c:"la"},
       {e:"play hopscotch?",z:"玩跳飞机吗",py:"wán tiào fēi jī ma",l:"谓语",c:"lp"}
     ]}
+  ],
+  "23":[
+    {en:"I will always love my family.",zh:"我永远爱我的家人。",w:[
+      {e:"I",z:"我",py:"wǒ",l:"主语",c:"ls"},
+      {e:"will always",z:"永远",py:"yǒng yuǎn",l:"状语",c:"la"},
+      {e:"love my family.",z:"爱我的家人",py:"ài wǒ de jiā rén",l:"谓语",c:"lp"}
+    ]},
+    {en:"Wishing you good health!",zh:"祝你身体健康！",w:[
+      {e:"Wishing you",z:"祝你",py:"zhù nǐ",l:"谓语",c:"lp"},
+      {e:"good health!",z:"身体健康",py:"shēn tǐ jiàn kāng",l:"宾语",c:"lo"}
+    ]},
+    {en:"He is blowing out the birthday candles.",zh:"他在吹生日蜡烛。",w:[
+      {e:"He",z:"他",py:"tā",l:"主语",c:"ls"},
+      {e:"is blowing out",z:"在吹",py:"zài chuī",l:"谓语",c:"lp"},
+      {e:"the birthday candles.",z:"生日蜡烛",py:"shēng rì là zhú",l:"宾语",c:"lo"}
+    ]},
+    {en:"There is a sheet of paper on the table.",zh:"桌子上有一张纸。",w:[
+      {e:"On the table",z:"桌子上",py:"zhuō zi shàng",l:"状语",c:"la"},
+      {e:"there is",z:"有",py:"yǒu",l:"谓语",c:"lp"},
+      {e:"a sheet of paper.",z:"一张纸",py:"yì zhāng zhǐ",l:"宾语",c:"lo"}
+    ]},
+    {en:"This is my student card.",zh:"这是我的学生卡。",w:[
+      {e:"This is",z:"这是",py:"zhè shì",l:"主语",c:"ls"},
+      {e:"my",z:"我的",py:"wǒ de",l:"定语",c:"la"},
+      {e:"student card.",z:"学生卡",py:"xué shēng kǎ",l:"宾语",c:"lo"}
+    ]},
+    {en:"I am writing Chinese characters.",zh:"我在写汉字。",w:[
+      {e:"I",z:"我",py:"wǒ",l:"主语",c:"ls"},
+      {e:"am writing",z:"在写",py:"zài xiě",l:"谓语",c:"lp"},
+      {e:"Chinese characters.",z:"汉字",py:"hàn zì",l:"宾语",c:"lo"}
+    ]},
+    {en:"I want to write a birthday card for my mother.",zh:"我想写一张生日卡给妈妈。",w:[
+      {e:"I",z:"我",py:"wǒ",l:"主语",c:"ls"},
+      {e:"want to write",z:"想写",py:"xiǎng xiě",l:"谓语",c:"lp"},
+      {e:"a birthday card",z:"一张生日卡",py:"yì zhāng shēng rì kǎ",l:"宾语",c:"lo"},
+      {e:"for my mother.",z:"给妈妈",py:"gěi mā ma",l:"状语",c:"la"}
+    ]}
   ]
 };
 
-var currentWeek="22";
+var currentWeek="23";
 var requestedWeek=new URLSearchParams(window.location.search).get("week");
 if(WEEKS[requestedWeek]) currentWeek=requestedWeek;
 var S=WEEKS[currentWeek];
