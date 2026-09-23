@@ -334,10 +334,40 @@ var WEEKS={
       {e:"a birthday card",z:"一张生日卡",py:"yì zhāng shēng rì kǎ",l:"宾语",c:"lo"},
       {e:"for my mother.",z:"给妈妈",py:"gěi mā ma",l:"状语",c:"la"}
     ]}
+  ],
+  "30":[
+    {en:"I do my homework as soon as I get home.",zh:"我回家就做功课。",w:[
+      {e:"I",z:"我",py:"wǒ",l:"主语",c:"ls"},
+      {e:"as soon as I get home",z:"回家就",py:"huí jiā jiù",l:"状语",c:"la"},
+      {e:"do my homework.",z:"做功课",py:"zuò gōng kè",l:"谓语",c:"lp"}
+    ]},
+    {en:"The little rabbit is pulling out a radish.",zh:"小兔子在拔萝卜。",w:[
+      {e:"The little rabbit",z:"小兔子",py:"xiǎo tù zi",l:"主语",c:"ls"},
+      {e:"is pulling out",z:"在拔",py:"zài bá",l:"谓语",c:"lp"},
+      {e:"a radish.",z:"萝卜",py:"luó bo",l:"宾语",c:"lo"}
+    ]},
+    {en:"My younger brother is crying.",zh:"弟弟哭了。",w:[
+      {e:"My younger brother",z:"弟弟",py:"dì di",l:"主语",c:"ls"},
+      {e:"is crying.",z:"哭了",py:"kū le",l:"谓语",c:"lp"}
+    ]},
+    {en:"This kitten is black.",zh:"这只小猫是黑色的。",w:[
+      {e:"This kitten",z:"这只小猫",py:"zhè zhī xiǎo māo",l:"主语",c:"ls"},
+      {e:"is black.",z:"是黑色的",py:"shì hēi sè de",l:"谓语",c:"lp"}
+    ]},
+    {en:"I have an exam tomorrow.",zh:"我明天要考试。",w:[
+      {e:"I",z:"我",py:"wǒ",l:"主语",c:"ls"},
+      {e:"tomorrow",z:"明天",py:"míng tiān",l:"状语",c:"la"},
+      {e:"have an exam.",z:"要考试",py:"yào kǎo shì",l:"谓语",c:"lp"}
+    ]},
+    {en:"When she could not see Mum, the younger sister cried.",zh:"看不到妈妈，妹妹就哭了。",w:[
+      {e:"When she could not see Mum,",z:"看不到妈妈",py:"kàn bú dào mā ma",l:"状语",c:"la"},
+      {e:"the younger sister",z:"妹妹",py:"mèi mei",l:"主语",c:"ls"},
+      {e:"cried.",z:"就哭了",py:"jiù kū le",l:"谓语",c:"lp"}
+    ]}
   ]
 };
 
-var currentWeek="23";
+var currentWeek="30";
 var requestedWeek=new URLSearchParams(window.location.search).get("week");
 if(WEEKS[requestedWeek]) currentWeek=requestedWeek;
 var S=WEEKS[currentWeek];
