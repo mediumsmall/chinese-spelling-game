@@ -17,6 +17,12 @@
   --danger-bg:#fff0ef;
   --danger:#b42318;
   --accent:#534ab7;
+  --tested-word-bg:#fff8dc;
+  --tested-word-border:#d3a31f;
+  --tested-word-text:#704f00;
+  --tested-sentence-bg:#f3f0ff;
+  --tested-sentence-border:#9687dc;
+  --tested-sentence-text:#43358f;
 }
 *{box-sizing:border-box}
 body{margin:0;background:#fff;color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -34,6 +40,14 @@ button{font:inherit;cursor:pointer}
 .prompt-help{font-size:15px;color:var(--muted);margin-top:12px}
 .word-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin-bottom:24px}
 .wc{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px 24px 24px;min-width:0;text-align:center}
+.wc.tested-word-card{background:var(--tested-word-bg);border:2px solid var(--tested-word-border);padding:27px 23px 23px;box-shadow:0 5px 16px rgba(112,79,0,.08)}
+.wc.tested-sentence-card{background:var(--tested-sentence-bg);border:2px solid var(--tested-sentence-border);padding:27px 23px 23px}
+.test-marker{display:inline-block;margin:0 auto 14px;padding:5px 10px;border-radius:999px;font-size:12px;line-height:1;font-weight:800;letter-spacing:.02em;text-transform:uppercase}
+.tested-word-card .test-marker{background:#f5d96f;color:var(--tested-word-text)}
+.tested-sentence-card .test-marker{background:#dcd5ff;color:var(--tested-sentence-text)}
+.test-note{display:inline-block;margin-top:14px;padding:6px 11px;border-radius:999px;font-size:13px;font-weight:700}
+.test-note.word{background:#f5d96f;color:var(--tested-word-text)}
+.test-note.sentence{background:#dcd5ff;color:var(--tested-sentence-text)}
 .card-head{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
 .lb{display:inline-block;font-size:20px;line-height:1;font-weight:750;padding:8px 14px;border-radius:9px}
 .la{background:#eeedfe;color:#3c3489;border:1px solid #afa9ec}
@@ -399,8 +413,7 @@ var WEEKS={
     ]},
     {en:"Mum tells me a story.",zh:"妈妈给我讲故事。",w:[
       {e:"Mum",z:"妈妈",py:"mā ma",l:"主语",c:"ls"},
-      {e:"tells me",z:"给我讲",py:"gěi wǒ jiǎng",l:"谓语",c:"lp"},
-      {e:"a story.",z:"故事",py:"gù shi",l:"宾语",c:"lo"}
+      {e:"tells me a story.",z:"给我讲故事",py:"gěi wǒ jiǎng gù shi",l:"谓语",c:"lp"}
     ]},
     {en:"I have a toy.",zh:"我有一个玩具。",w:[
       {e:"I have",z:"我有",py:"wǒ yǒu",l:"谓语",c:"lp"},
@@ -564,6 +577,16 @@ var WEEKS={
   ]
 };
 
+var TESTED_ITEMS={
+  "31":["声","话","借书","好多次","首","sentence"],
+  "32":["英","讲故事","具","样","各种各样","知道","sentence"],
+  "33":["夜市","楼下","静","热闹","sentence","sentence"],
+  "34":["烤","炸","踢足球","五颜六色","椅","sentence"],
+  "35":["海","参观","国家","游泳","区","干净","sentence"],
+  "36":["洗","活","约","猜","重","sentence"],
+  "37":["告诉","喝水","外婆","连忙","口渴"]
+};
+
 var currentWeek="37";
 var requestedWeek=new URLSearchParams(window.location.search).get("week");
 if(WEEKS[requestedWeek]) currentWeek=requestedWeek;
@@ -583,6 +606,30 @@ function norm(s){
 function isMatch(input,word){
   var value=norm(input);
   return value&&(value===norm(word.z)||value===norm(word.py));
+}
+
+function currentTestItem(){
+  var items=TESTED_ITEMS[currentWeek];
+  return items?items[ci]:null;
+}
+
+function testCardClass(i){
+  var item=currentTestItem();
+  if(item==="sentence") return " tested-sentence-card";
+  return item&&S[ci].w[i].z.indexOf(item)>=0?" tested-word-card":"";
+}
+
+function testMarker(i){
+  var item=currentTestItem();
+  if(item==="sentence") return i===0?'<span class="test-marker">full sentence</span>':"";
+  return item&&S[ci].w[i].z.indexOf(item)>=0?'<span class="test-marker">tested word</span>':"";
+}
+
+function testNote(){
+  var item=currentTestItem();
+  if(!item) return "";
+  if(item==="sentence") return '<div class="test-note sentence">Purple boxes: full sentence practice</div>';
+  return '<div class="test-note word">Gold box: this week\'s tested word</div>';
 }
 
 function loadVoice(){
@@ -636,14 +683,14 @@ function gInit(i){
 }
 
 function cardInner(i){
-  var w=S[ci].w[i], state=ws[i], chars=charsFor(w);
+  var w=S[ci].w[i], state=ws[i], chars=charsFor(w), marker=testMarker(i);
   if(state===2||state===3){
     var helped=mode==="writing"?assisted[i].filter(Boolean).length:0;
     var boxClass=state===3?"revealed":helped?"assisted":"success";
     var note=state===2&&helped
       ?'<span class="answer-note">'+helped+' character'+(helped===1?" was":"s were")+' completed with help.</span>'
       :"";
-    return '<div class="card-head"><span class="lb '+w.c+'">'+w.l+'</span><span class="word-text">'+w.e+'</span></div>'+
+    return marker+'<div class="card-head"><span class="lb '+w.c+'">'+w.l+'</span><span class="word-text">'+w.e+'</span></div>'+
       '<div class="answer-box '+boxClass+'">'+
       '<span class="answer-zh">'+w.z+'</span><span class="answer-py">'+w.py+'</span>'+note+'</div>'+
       '<div class="action-row"><button class="sm-btn" onclick="gRetry('+i+')">'+(mode==="writing"?'write again':'try again')+'</button></div>';
@@ -654,7 +701,7 @@ function cardInner(i){
       :(state===1
         ?'<div class="status bad">Not quite. Try again, ask for a hint, or reveal it.</div>'
         :'<div class="status">Type pinyin or Chinese characters, then press Enter.</div>');
-    return '<div class="card-head"><span class="lb '+w.c+'">'+w.l+'</span><span class="word-text">'+w.e+'</span></div>'+
+    return marker+'<div class="card-head"><span class="lb '+w.c+'">'+w.l+'</span><span class="word-text">'+w.e+'</span></div>'+
       '<input id="inp'+i+'" class="zh-inp'+(state===1?' wrong':'')+'" type="text" placeholder="pinyin or 汉字" autocomplete="off" autocorrect="off" spellcheck="false">'+
       typeStatus+
       '<div class="action-row"><button class="sm-btn" onclick="gTypeHint('+i+')">hint</button><button class="sm-btn" onclick="gReveal('+i+')">reveal</button></div>';
@@ -663,7 +710,7 @@ function cardInner(i){
     return '<div class="char-wrap"><div class="char-label">character '+(j+1)+'</div>'+
       '<div class="char-pad" id="pad-'+i+'-'+j+'"><span class="loading">loading...</span></div></div>';
   }).join("");
-  return '<div class="card-head"><span class="lb '+w.c+'">'+w.l+'</span><span class="word-text">'+w.e+'</span></div>'+
+  return marker+'<div class="card-head"><span class="lb '+w.c+'">'+w.l+'</span><span class="word-text">'+w.e+'</span></div>'+
     '<div class="write-row">'+pads+'</div>'+
     '<div id="status-'+i+'" class="status">Write each character in the correct stroke order.</div>'+
     '<div class="action-row">'+
@@ -947,7 +994,7 @@ function updateFooter(){
 
 function gRender(){
   var cards=S[ci].w.map(function(_,i){
-    return '<section class="wc" id="card'+i+'">'+cardInner(i)+'</section>';
+    return '<section class="wc'+testCardClass(i)+'" id="card'+i+'">'+cardInner(i)+'</section>';
   }).join("");
   var error=mode!=="writing"||window.HanziWriter?"":'<div class="lib-error">Writing practice needs an internet connection to load the stroke-checking library.</div>';
   document.getElementById("gc").innerHTML=
@@ -962,7 +1009,7 @@ function gRender(){
       '<button class="mode-toggle'+(mode==="writing"?' active':'')+'" onclick="setMode(\'writing\')">Writing</button>'+
     '</div>'+error+
     '<div class="prompt-card"><p>'+S[ci].en+'</p>'+
-    '<div class="prompt-help">'+(mode==="writing"?'Write the Chinese translation one character at a time.':'Type the Chinese translation using pinyin or characters.')+'</div></div>'+
+    '<div class="prompt-help">'+(mode==="writing"?'Write the Chinese translation one character at a time.':'Type the Chinese translation using pinyin or characters.')+'</div>'+testNote()+'</div>'+
     '<div class="word-grid">'+cards+'</div><div id="gfoot"></div>';
   S[ci].w.forEach(function(_,i){
     if(mode==="writing") attachWriters(i);
