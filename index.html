@@ -40,10 +40,8 @@ button{font:inherit;cursor:pointer}
 .prompt-help{font-size:15px;color:var(--muted);margin-top:12px}
 .word-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin-bottom:24px}
 .wc{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px 24px 24px;min-width:0;text-align:center}
-.wc.tested-word-card{background:var(--tested-word-bg);border:2px solid var(--tested-word-border);padding:27px 23px 23px;box-shadow:0 5px 16px rgba(112,79,0,.08)}
 .wc.tested-sentence-card{background:var(--tested-sentence-bg);border:2px solid var(--tested-sentence-border);padding:27px 23px 23px}
 .test-marker{display:inline-block;margin:0 auto 14px;padding:5px 10px;border-radius:999px;font-size:12px;line-height:1;font-weight:800;letter-spacing:.02em;text-transform:uppercase}
-.tested-word-card .test-marker{background:#f5d96f;color:var(--tested-word-text)}
 .tested-sentence-card .test-marker{background:#dcd5ff;color:var(--tested-sentence-text)}
 .test-note{display:inline-block;margin-top:14px;padding:6px 11px;border-radius:999px;font-size:13px;font-weight:700}
 .test-note.word{background:#f5d96f;color:var(--tested-word-text)}
@@ -64,12 +62,17 @@ button{font:inherit;cursor:pointer}
   linear-gradient(to bottom,transparent 49.5%,#ececec 49.5%,#ececec 50.5%,transparent 50.5%),
   #fff;touch-action:none;overflow:hidden}
 .char-pad.done{border-color:var(--success);background-color:var(--success-bg)}
+.char-pad.tested-char-pad{border:3px solid var(--tested-word-border);background-color:var(--tested-word-bg);box-shadow:0 0 0 3px rgba(211,163,31,.12)}
+.char-pad.tested-char-pad.done{border-color:var(--success);box-shadow:0 0 0 3px rgba(211,163,31,.18)}
+.tested-mini{display:inline-block;margin-left:5px;padding:2px 5px;border-radius:999px;background:#f5d96f;color:var(--tested-word-text);font-size:9px;font-weight:800;text-transform:uppercase;vertical-align:1px}
 .hint-layer{position:absolute;inset:0;pointer-events:none;z-index:2}
 .trace-layer{position:absolute;inset:0;pointer-events:none;z-index:0}
 .char-pad>svg:not(.hint-layer):not(.trace-layer){position:relative;z-index:1}
 .loading{display:flex;align-items:center;justify-content:center;height:100%;padding:8px;font-size:12px;color:var(--muted)}
 .zh-inp{display:block;width:100%;max-width:420px;margin:28px auto 0;font-size:30px;line-height:1.2;text-align:center;padding:13px 15px;border:1px solid var(--border);border-radius:11px;background:#fff;color:var(--text);outline:none}
 .zh-inp:focus{border-color:#aaa;box-shadow:0 0 0 3px rgba(0,0,0,.04)}
+.zh-inp.tested-input{border:3px solid var(--tested-word-border);background:var(--tested-word-bg)}
+.tested-zh{display:inline-block;padding:0 5px;border-radius:6px;background:#f5d96f;color:var(--tested-word-text)}
 .zh-inp.wrong{border-color:var(--danger);background:var(--danger-bg);color:var(--danger)}
 .status{min-height:22px;font-size:14px;color:var(--muted);margin-top:4px}
 .status.good{color:var(--success);font-weight:650}
@@ -616,20 +619,44 @@ function currentTestItem(){
 function testCardClass(i){
   var item=currentTestItem();
   if(item==="sentence") return " tested-sentence-card";
-  return item&&S[ci].w[i].z.indexOf(item)>=0?" tested-word-card":"";
+  return "";
 }
 
 function testMarker(i){
   var item=currentTestItem();
   if(item==="sentence") return i===0?'<span class="test-marker">full sentence</span>':"";
-  return item&&S[ci].w[i].z.indexOf(item)>=0?'<span class="test-marker">tested word</span>':"";
+  return "";
 }
 
 function testNote(){
   var item=currentTestItem();
   if(!item) return "";
   if(item==="sentence") return '<div class="test-note sentence">Purple boxes: full sentence practice</div>';
-  return '<div class="test-note word">Gold box: this week\'s tested word</div>';
+  return mode==="writing"
+    ?'<div class="test-note word">Gold character boxes: this week\'s tested word</div>'
+    :'<div class="test-note word">Gold input: contains this week\'s tested word</div>';
+}
+
+function wordContainsTestItem(i){
+  var item=currentTestItem();
+  return item&&item!=="sentence"&&S[ci].w[i].z.indexOf(item)>=0;
+}
+
+function isTestedChar(i,j){
+  var item=currentTestItem(), word=S[ci].w[i];
+  if(!item||item==="sentence") return false;
+  var itemIndex=word.z.indexOf(item);
+  if(itemIndex<0) return false;
+  var start=Array.from(word.z.slice(0,itemIndex)).filter(function(ch){return /[\u3400-\u9fff]/.test(ch);}).length;
+  return j>=start&&j<start+charsFor({z:item}).length;
+}
+
+function highlightedAnswer(i,text){
+  var item=currentTestItem();
+  if(!item||item==="sentence") return text;
+  var start=text.indexOf(item);
+  if(start<0) return text;
+  return text.slice(0,start)+'<span class="tested-zh">'+item+'</span>'+text.slice(start+item.length);
 }
 
 function loadVoice(){
@@ -692,7 +719,7 @@ function cardInner(i){
       :"";
     return marker+'<div class="card-head"><span class="lb '+w.c+'">'+w.l+'</span><span class="word-text">'+w.e+'</span></div>'+
       '<div class="answer-box '+boxClass+'">'+
-      '<span class="answer-zh">'+w.z+'</span><span class="answer-py">'+w.py+'</span>'+note+'</div>'+
+      '<span class="answer-zh">'+highlightedAnswer(i,w.z)+'</span><span class="answer-py">'+w.py+'</span>'+note+'</div>'+
       '<div class="action-row"><button class="sm-btn" onclick="gRetry('+i+')">'+(mode==="writing"?'write again':'try again')+'</button></div>';
   }
   if(mode==="typing"){
@@ -702,13 +729,14 @@ function cardInner(i){
         ?'<div class="status bad">Not quite. Try again, ask for a hint, or reveal it.</div>'
         :'<div class="status">Type pinyin or Chinese characters, then press Enter.</div>');
     return marker+'<div class="card-head"><span class="lb '+w.c+'">'+w.l+'</span><span class="word-text">'+w.e+'</span></div>'+
-      '<input id="inp'+i+'" class="zh-inp'+(state===1?' wrong':'')+'" type="text" placeholder="pinyin or 汉字" autocomplete="off" autocorrect="off" spellcheck="false">'+
+      '<input id="inp'+i+'" class="zh-inp'+(state===1?' wrong':'')+(wordContainsTestItem(i)?' tested-input':'')+'" type="text" placeholder="pinyin or 汉字" autocomplete="off" autocorrect="off" spellcheck="false">'+
       typeStatus+
       '<div class="action-row"><button class="sm-btn" onclick="gTypeHint('+i+')">hint</button><button class="sm-btn" onclick="gReveal('+i+')">reveal</button></div>';
   }
   var pads=chars.map(function(ch,j){
-    return '<div class="char-wrap"><div class="char-label">character '+(j+1)+'</div>'+
-      '<div class="char-pad" id="pad-'+i+'-'+j+'"><span class="loading">loading...</span></div></div>';
+    var tested=isTestedChar(i,j);
+    return '<div class="char-wrap"><div class="char-label">character '+(j+1)+(tested?'<span class="tested-mini">tested</span>':'')+'</div>'+
+      '<div class="char-pad'+(tested?' tested-char-pad':'')+'" id="pad-'+i+'-'+j+'"><span class="loading">loading...</span></div></div>';
   }).join("");
   return marker+'<div class="card-head"><span class="lb '+w.c+'">'+w.l+'</span><span class="word-text">'+w.e+'</span></div>'+
     '<div class="write-row">'+pads+'</div>'+
