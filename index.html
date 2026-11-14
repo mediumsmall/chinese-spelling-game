@@ -93,6 +93,8 @@ button{font:inherit;cursor:pointer}
 .answer-box.revealed .answer-py{color:#777}
 .answer-note{display:block;font-size:13px;margin-top:7px;color:var(--muted)}
 .game-footer{color:var(--muted);font-size:14px}
+.audio-status{display:inline-block;margin-left:8px;color:var(--accent);font-weight:650}
+.audio-status.error{color:var(--danger)}
 .footer-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
 .footer-actions{display:flex;gap:8px;flex-wrap:wrap}
 .pip{width:8px;height:8px;border-radius:50%;background:#d5d5d5;display:inline-block;margin:0 4px}
@@ -596,7 +598,7 @@ if(WEEKS[requestedWeek]) currentWeek=requestedWeek;
 var S=WEEKS[currentWeek];
 
 var ci=0, mode="writing", ws=[], writers=[], completed=[], assisted=[], strokeProgress=[], mistakes=[], hinted=[], typeHints=[], charData=[], uv=[];
-var bestVoice=null;
+var bestVoice=null, activeUtterance=null, speakTimer=null;
 
 function charsFor(word){
   return Array.from(word.z).filter(function(ch){return /[\u3400-\u9fff]/.test(ch);});
@@ -661,30 +663,60 @@ function highlightedAnswer(i,text){
 
 function loadVoice(){
   if(!window.speechSynthesis) return;
-  var voices=speechSynthesis.getVoices();
-  var order=["Google 普通话（中国大陆）","Google Chinese (China)","Tingting","Microsoft Huihui"];
+  var voices=window.speechSynthesis.getVoices();
+  var order=["Google 普通话（中国大陆）","Google Chinese (China)","Tingting","Microsoft Huihui","Microsoft Xiaoxiao"];
   bestVoice=null;
   order.some(function(name){
     bestVoice=voices.find(function(v){return v.name===name;})||null;
     return !!bestVoice;
   });
-  if(!bestVoice) bestVoice=voices.find(function(v){return v.lang==="zh-CN";})||
-    voices.find(function(v){return v.lang&&v.lang.indexOf("zh")===0;})||null;
+  if(!bestVoice) bestVoice=voices.find(function(v){return /^(zh-CN|zh-SG)$/i.test(v.lang||"");})||
+    voices.find(function(v){return /^(zh|cmn)/i.test(v.lang||"");})||null;
 }
 
 if(window.speechSynthesis){
   loadVoice();
-  speechSynthesis.onvoiceschanged=loadVoice;
+  window.speechSynthesis.onvoiceschanged=loadVoice;
+}
+
+function setAudioStatus(message,isError){
+  var status=document.getElementById("audio-status"), button=document.getElementById("play-btn");
+  if(status){
+    status.textContent=message||"";
+    status.className="audio-status"+(isError?" error":"");
+  }
+  if(button) button.textContent=message==="playing..."?"playing...":"play";
 }
 
 function gSpeak(){
-  if(!window.speechSynthesis) return;
-  var utterance=new SpeechSynthesisUtterance(S[ci].zh);
-  utterance.lang="zh-CN";
-  utterance.rate=.82;
-  if(bestVoice) utterance.voice=bestVoice;
-  speechSynthesis.cancel();
-  speechSynthesis.speak(utterance);
+  if(!window.speechSynthesis||!window.SpeechSynthesisUtterance){
+    setAudioStatus("Audio is not supported in this browser.",true);
+    return;
+  }
+  window.clearTimeout(speakTimer);
+  loadVoice();
+  activeUtterance=new window.SpeechSynthesisUtterance(S[ci].zh);
+  activeUtterance.lang=bestVoice&&bestVoice.lang?bestVoice.lang:"zh-CN";
+  activeUtterance.rate=.82;
+  activeUtterance.volume=1;
+  if(bestVoice) activeUtterance.voice=bestVoice;
+  activeUtterance.onstart=function(){setAudioStatus("playing...",false);};
+  activeUtterance.onend=function(){setAudioStatus("",false);activeUtterance=null;};
+  activeUtterance.onerror=function(event){
+    if(event.error==="canceled"||event.error==="interrupted") return;
+    setAudioStatus("Could not play audio. Tap play again.",true);
+    activeUtterance=null;
+  };
+  function startSpeaking(){
+    if(window.speechSynthesis.paused) window.speechSynthesis.resume();
+    window.speechSynthesis.speak(activeUtterance);
+  }
+  if(window.speechSynthesis.speaking||window.speechSynthesis.pending){
+    window.speechSynthesis.cancel();
+    speakTimer=window.setTimeout(startSpeaking,80);
+  }else{
+    startSpeaking();
+  }
 }
 
 function emptyWordState(){
@@ -692,6 +724,9 @@ function emptyWordState(){
 }
 
 function gInit(i){
+  window.clearTimeout(speakTimer);
+  if(window.speechSynthesis&&(window.speechSynthesis.speaking||window.speechSynthesis.pending)) window.speechSynthesis.cancel();
+  activeUtterance=null;
   writers.forEach(function(group){
     group.forEach(function(writer){if(writer&&writer.cancelQuiz) writer.cancelQuiz();});
   });
@@ -1009,13 +1044,13 @@ function updateFooter(){
       ?'<span>Write with a mouse, stylus, or finger. <span class="kk">space</span> plays the sentence.</span>'
       :'<span>Type pinyin or Chinese characters and press <span class="kk">enter</span>. <span class="kk">space</span> plays the sentence.</span>');
   var pips=S.map(function(_,j){return '<span class="pip'+(j===ci?' on':'')+'"></span>';}).join("");
-  document.getElementById("gfoot").innerHTML='<div class="game-footer"><div style="margin-bottom:12px">'+msg+'</div>'+
+  document.getElementById("gfoot").innerHTML='<div class="game-footer"><div style="margin-bottom:12px">'+msg+'<span id="audio-status" class="audio-status" aria-live="polite"></span></div>'+
     '<div class="footer-row"><div>'+pips+'<span style="font-size:13px;margin-left:8px">'+(ci+1)+' / '+S.length+'</span></div>'+
     '<div class="footer-actions">'+
       '<button onclick="gInit((ci-1+'+S.length+')%'+S.length+')">prev</button>'+
       '<button onclick="gReset()">reset</button>'+
       '<button onclick="gRevealAll()">reveal all</button>'+
-      '<button onclick="gSpeak()">play</button>'+
+      '<button id="play-btn" type="button" onclick="gSpeak()">play</button>'+
       '<button onclick="gInit((ci+1)%'+S.length+')">next</button>'+
     '</div></div></div>';
 }
